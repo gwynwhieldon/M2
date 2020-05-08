@@ -19,7 +19,7 @@ newPackage select((
     Authors => {{Name => "David Cook II",
                  Email => "dcook8@nd.edu",
                  HomePage => "http://www.nd.edu/~dcook8"}},
-    Headline => "Interface to nauty (Graphs fork)",
+    Headline => "interface to nauty (Graphs fork)",
     Configuration => {"path" => ""},
     PackageExports => {"Graphs"},
     DebuggingMode => false,
@@ -1479,6 +1479,7 @@ doc ///
             of each and how the argument $a$ is used.
 
             The sixteen vertex invariants are:
+
             @UL ({
                 "$i = 0$: none,",
                 "$i = 1$: twopaths,",

@@ -6,7 +6,7 @@ newPackage(
     	Authors => {
 	     {Name => "Dave Swinarski", Email => "swinarsk@math.columbia.edu"}
 	     },
-    	Headline => "for computing the state polytope of an ideal",
+    	Headline => "the state polytope of an ideal",
 	-- DebuggingMode should be true while developing a package, 
 	--   but false after it is done
 	Configuration => {"gfan command" => "gfan"},
@@ -16,17 +16,17 @@ newPackage(
     	)
 
 export { 
-     --gfanRingInput, 
-     --gfanIdealInput, 
-     initialIdeals, --documented
-     --hilbertPt, 
-     --statePolytopePoints, 
-     --statePolytopePoints, 
-     --printHilbPt, 
-     --createPolymakeInputFile,
-     statePolytope, --documented
-     --maxUGBDegree, 
-     isStable --documented
+     --"gfanRingInput", 
+     --"gfanIdealInput", 
+     "initialIdeals", --documented
+     --"hilbertPt", 
+     --"statePolytopePoints", 
+     --"statePolytopePoints", 
+     --"printHilbPt", 
+     --"createPolymakeInputFile",
+     "statePolytope", --documented
+     --"maxUGBDegree", 
+     "isStable" --documented
      }
 
 

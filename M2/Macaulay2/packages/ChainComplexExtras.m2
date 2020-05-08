@@ -1,15 +1,16 @@
 newPackage(
      "ChainComplexExtras",
-     Version => "1",
-     Date => "December 3, 2014",
+     Version => "1.1",
+     Date => "Jan 11, 2016",
      Authors => {
 	  {Name => "David Eisenbud", Email => "de@msri.org", HomePage => "http://www.msri.org/~de"},
 	  {Name => "Frank Moore", Email => "fmoore@math.unl.edu", HomePage => "http://www.math.unl.edu/~s-wmoore3"},
 	  {Name => "Frank-Olaf Schreyer", Email => "schreyer@math.uni-sb.de", HomePage => "http://www.math.uni-sb.de/ag/schreyer/"},
-	  {Name => "Greg Smith", Email => "ggsmith@mast.queensu.ca", HomePage => "http://www.mast.queensu.ca/~ggsmith"}
+	  {Name => "Greg Smith", Email => "ggsmith@mast.queensu.ca", HomePage => "http://www.mast.queensu.ca/~ggsmith"},
+	  {Name => "Lily Silverstein", Email => "lsilverstein@cpp.edu", HomePage => "https://www.cpp.edu/faculty/lsilverstein/"}
 	  },
-     Headline => "Some additional ChainComplex Functions.",
-     DebuggingMode =>true
+     Headline => "some additional ChainComplex Functions",
+     DebuggingMode =>false
      )
 
 export "isExact"
@@ -34,18 +35,22 @@ export "removeZeroTrailingTerms" -- remove trailing zero terms of a chain comple
 export "trivialHomologicalTruncation" -- return the trivial truncation of a chain complex
 export "nonzeroMin" -- computes the homological position of the first non-zero module in a ChainComplex
 export "nonzeroMax" -- computes the homological position of the last non-zero module in a ChainComplex
+--for debugging purposes -- comment out when done:
 --export "chainComplexData"
 --export "chainComplexFromData"
+export "scarfComplex"
 
 substitute(ChainComplex,Ring):=(C,newRing)->(
    --- this function is just a version of substitute for chain complexes
    chainComplex(apply((min C + 1..max C), i -> substitute(C.dd_i, newRing)))
 )
 
+-*
 chainComplexData = C->(
     minC := min C;
     maxC := max C;
     C':=C[minC];
+    --note that this changes the signs of the differentials by (-1)^minC
     {minC, maxC, apply(toList(1..maxC-minC), i-> (C').dd_i)}
 )
 chainComplexFromData = method()
@@ -54,6 +59,7 @@ chainComplexFromData List := L ->(
     --shifted maps
     C := chainComplex L_2;
     assert( min C == 0);
+    --this is indeed the inverse of chainComplexData, but the maps may have different signs than those in the list.
     C[-L_0])
 
 
@@ -63,6 +69,57 @@ chainComplexFromData(ZZ, List) := (minC,L) ->(
     C := chainComplex L;
     assert( min C ==0);
     C[-minC])
+*-
+-*
+--the following versions from before 2018 do not take into account the case where
+--C has only one module and no maps.
+
+chainComplexData = C->(
+    minC := min C;
+    maxC := max C;
+    C':=C[minC];
+    {minC, maxC, apply(toList(1..maxC-minC), i-> (-1)^minC*(C').dd_i)}
+)
+
+chainComplexFromData = method()
+chainComplexFromData List := L ->(
+    --format of L is desired min, desired max, list of 
+    --shifted maps
+    C := chainComplex apply(L_2, d->(-1)^(L_0)*d);
+    assert( min C == 0);
+    C[-L_0])
+*-
+
+--(change made 180114 -- DE:) 
+--these versions deal with the case where C has 1 module and no maps, min C === max C.
+chainComplexData  = method()
+chainComplexData ChainComplex := C->(
+    minC := min C;
+    maxC := max C;
+    C':=C[minC];
+    cont := if minC === maxC then {C'_0} else 
+         apply(toList(1..maxC-minC), i-> (-1)^minC*(C').dd_i);
+    {minC, maxC, cont}
+)
+
+chainComplexFromData = method()
+chainComplexFromData List := L ->(
+    --format of L is desired min, desired max, and, if min C != max C, then list of 
+    --shifted maps, otherwise the unique module.
+    if L_0===L_1 then C:= L_2_0[0] else
+    C = chainComplex apply(L_2, d->(-1)^(L_0)*d);
+    assert( min C == 0);
+    C[-L_0]
+    )
+
+--the functionality of this form is subsumed by that of the form without the ZZ option!
+chainComplexFromData(ZZ, List) := (minC,L) ->(
+    --here L is a list of maps. Note that this form 
+    --minC will become the min of the output complex
+    C := chainComplex apply(L, d->(-1)^minC*d);
+    assert( min C ==0);
+    C[-minC])
+
 
 ///
 S=ZZ[x,y]/ideal(x*y)
@@ -98,7 +155,7 @@ trivialHomologicalTruncation(C1,-3,3)
 ///
 	
     
-
+-*
 prependZeroMap= method()
 prependZeroMap ChainComplex := C->(
     L := chainComplexData(C[-1]);
@@ -124,8 +181,50 @@ removeZeroTrailingTerms(ChainComplex) := W -> (
     if mi==ma then (return (chainComplex({map(E^0,W'_0,0),map(W'_0,E^0,0)}))[-mi+1]) else
     (chainComplex apply(toList(1..ma-mi),i->W'.dd_i))[-mi]
     )
+*-
+
+
+
+prependZeroMap= method()
+prependZeroMap ChainComplex := C->(
+    L := chainComplexData(C);
+    if L_0 == L_1 then 
+      return (chainComplexFromData {L_0,L_1,{chainComplex map((ring C)^0, C_(L_0),0)}})[1];
+    minC := L_0;
+    newd := map((ring C)^0, target L_2_0, 0);
+    (chainComplexFromData(minC-1,prepend(newd,L_2)))
+    )
+appendZeroMap = method()
+appendZeroMap ChainComplex := C->(
+    L := chainComplexData(C);
+    if L_0 == L_1 then 
+      return chainComplexFromData {L_0,L_1,{chainComplex map(C_(L_0),(ring C)^0, 0)}};
+    minC := L_0;
+    newd := map(source last L_2,(ring C)^0, 0);
+    chainComplexFromData (minC,append(L_2,newd))
+    )    
+-*    
+appendZeroMap= method()
+appendZeroMap ChainComplex := C->(
+    L := chainComplexData(C);
+    minC := L_0;
+    newd := map(source last L_2,(ring C)^0, 0);
+    chainComplexFromData(minC,append(L_2,newd))
+    )    
+*-  
+removeZeroTrailingTerms = method()
+removeZeroTrailingTerms(ChainComplex) := W -> (
+    E := ring W;
+    mi := nonzeroMin W;
+    ma := nonzeroMax W;
+    W' := W[mi];
+    if mi==ma then (return (chainComplex({map(E^0,W'_0,0),map(W'_0,E^0,0)}))[-mi+1]) else
+    (chainComplex apply(toList(1..ma-mi),i->W'.dd_i))[-mi]
+    )
 
 ///
+restart
+loadPackage("ChainComplexExtras", Reload =>true)
 R=ZZ[tt]
 C=chainComplex {matrix{{R_0}}}
 C1=appendZeroMap prependZeroMap C
@@ -197,10 +296,52 @@ isChainComplex(ChainComplex):=(inputComplex)->(
    if (inputComplex.dd^2 == 0) then true else false
 )
 
+-*
 isChainComplexMap=method()
 isChainComplexMap(ChainComplexMap):=(inputMap)->(
    isChainComplex(cone inputMap)
 )
+*-
+isChainComplexMap=method()
+isChainComplexMap(ChainComplexMap):=(inputMap)->(
+   degs := sort select(keys inputMap, k->class inputMap#k === Matrix);
+   if degs == {} then return true;
+   A := trivialHomologicalTruncation(source inputMap, min degs, max degs);
+   B := trivialHomologicalTruncation(target inputMap, min degs, max degs);
+   restrictedMap := chainComplexMap(B,A,apply(degs, i-> inputMap_i), InitialDegree => min degs);
+   isChainComplex(cone restrictedMap))
+///
+restart
+loadPackage("ChainComplexExtras", Reload =>true)
+S = ZZ/101[t]
+C = chainComplex map (S^1,S^1,t)
+D = chainComplex{map(S^1/t, S^1,1), map(S^1,S^1,-t)}[1]
+phi = chainComplexMap(D,C,apply({0,1},i->id_(C_i)))
+isChainComplexMap phi
+
+--A test from BGG
+restart
+  needsPackage "BGG"
+  needsPackage "ChainComplexExtras"  
+  kk = ZZ/101
+  A = kk[a]
+  S = A[x,y]
+  M1 = S^{{-1,0},{0,0}}
+  C1 = directImageComplex(id_M1)
+  assert(C1_0 == 1)
+  assert isChainComplexMap C1
+
+  M2 = S^{{-1,0}}
+  C2 = directImageComplex(id_M2)
+  assert isChainComplexMap C2
+  assert(C2_0 == 0)
+
+  M3 = S^{{-2,0}}
+  C3 = directImageComplex(id_M3)
+  assert isChainComplexMap C3
+  assert(C3_0 == 0)
+
+///
 
 isQuasiIsomorphism=method(Options => {LengthLimit => infinity})
 isQuasiIsomorphism(ChainComplexMap):= o -> (phi)-> (
@@ -563,6 +704,42 @@ extendFromMiddle (ChainComplex, ChainComplex, Matrix, ZZ) := (F1, F2, f, i) ->(
     map(F1, F2e, j->
 	    if j< i then map(F1_j, F2e_j,0) else fi_(j-i))
     )
+
+scarfComplex = method()
+scarfComplex(MonomialIdeal) := (I) -> (
+    R := ring I;
+    n := numgens R;
+    gensList := flatten entries gens I;
+    if #gensList == 0 then return chainComplex gens I;
+    allIndices := for i from 1 to min(n+1, #gensList) list subsets(0..(#gensList-1), i);
+    allLcms := apply(allIndices, v -> apply(v, w -> myLcm(gensList_w)));
+    uniqueLcms := keys select(tally flatten allLcms, v -> v == 1);
+    targetSubsets := allIndices_0;
+    targetList := apply(targetSubsets, v -> myLcm(gensList_v));
+    S := {gens I};
+    hdeg := 1;
+    while hdeg < min(n, #gensList) do(
+	hdeg = hdeg + 1;
+	sourceSubsets := select(allIndices_(hdeg-1), v -> member(myLcm(gensList_v), uniqueLcms));
+	sourceList := apply(sourceSubsets, v -> myLcm(gensList_v));
+	getCoeff := (i,j) -> (
+	    if (isSubset(targetSubsets_i,sourceSubsets_j)) then(
+		(-1)^(position(sourceSubsets_j, k -> k == (toList(set sourceSubsets_j - set targetSubsets_i))_0))
+		)
+	    else 0_R
+	    );
+      	myFn := (i,j) -> (
+	    tempElt := sourceList_j / targetList_i;
+	    if (liftable(tempElt,R)) then getCoeff(i,j)*lift(tempElt,R) else 0_R
+	    );
+      	S = append(S, map(R^(-apply(targetList, i -> degree i)), R^(-apply(sourceList, i -> degree i)), myFn));
+	targetSubsets = sourceSubsets;
+	targetList = sourceList;
+	if #targetList == 0 then break;
+	);
+    chainComplex S
+    )
+
 ///
 restart
 uninstallPackage "ChainComplexExtras"
@@ -668,7 +845,6 @@ document {
 		"C = koszulComplex(ideal vars R) ** (R^1/I);",
 		"m = res C;",
 		"isQuasiIsomorphism m",
-		"betti C",
 		"betti source m",
 		"C == target m"
 	     }
@@ -707,14 +883,20 @@ document {
 	  {"Boolean"}
      },
      EXAMPLE {
-	     "R = ZZ/101[a,b,c]",
-	     "kRes = res coker vars R",
+	     "S = ZZ/101[a,b,c]",
+	     "kRes = res coker vars S",
 	     "multBya = extend(kRes,kRes,matrix{{a}})",
 	     "isChainComplexMap(multBya)",
+	     "",
+	     "T = chainComplex(map(S^1,S^1,a))",
+	     "T' = chainComplex{map(S^1/(ideal a),S^1, 1), map(S^1,S^1, -a)}[1]",
+	     "phi = chainComplexMap(T',T,apply(toList(min T..max T), i->id_(T_i)))",
+	     "isChainComplexMap phi"
 	     },
      PARA{},
-     "Caveat: There is a problem that leads to a wrong answer
-     when the complexes have different lengths"
+     "Caveat: The script uses trivialHomologicalTruncation to truncates the source and target of the map phi
+     to include only the indices for which phi has matrices. This eliminates the problem of complexes of
+     different lengths seen in an earlier version, which would have made the last line in the example return false."
      }
 
 document {
@@ -760,7 +942,7 @@ document {
 	     }
      }
 
-{*
+-*
 document {
      Key => {isQuism, (isQuism,ChainComplexMap)},
      Headline => "Test to see if the ChainComplexMap is a quasi-isomorphism.",
@@ -784,7 +966,7 @@ document {
 	     "isQuism(F)",
 	     }
      }
-*}
+*-
 doc ///
    Key
     [isQuasiIsomorphism,LengthLimit]
@@ -1349,7 +1531,7 @@ doc ///
 ///
 
 
-{*
+-*
 doc ///
    Key
     chainComplexData
@@ -1401,7 +1583,131 @@ doc ///
    SeeAlso
     chainComplexData
 ///
-*}
+*-
+
+doc ///
+   Key
+    scarfComplex
+    (scarfComplex, MonomialIdeal)
+   Headline
+    constructs the algebraic Scarf complex of a monomial ideal
+   Usage
+    C = scarfComplex I
+   Inputs
+    I:MonomialIdeal
+   Outputs
+    C:ChainComplex
+   Description
+    Text
+     The algebraic Scarf complex of a monomial ideal is the sub-chain complex of the 
+     @ TO taylorResolution@ supported on subsets of generators with unique LCMs.
+    Example
+     R = QQ[a,b,c,d,e];
+     I = monomialIdeal(b^4*c^3, a*b^3*c*d^2*e, a*b^2*c^2*d*e^2, a^2*d^3*e^5, b*c^2*d^5*e^4);
+     s = scarfComplex I
+     s.dd
+    Text
+     The Scarf complex of I is always a subcomplex of the minimal free resolution of I, 
+     computed in M2 with the command {\tt res I}. In this first example the Scarf complex
+     is strictly smaller.
+    Example
+     (betti s, betti res I)
+    Text
+     In some cases, such as when I is a generic monomial ideal, the Scarf complex of I     
+     is a minimal free resolution of I. In this case {\tt scarfComplex I} and {\tt res I} will be
+     isomorphic but not necessarily equal.
+    Example 
+     I = monomialIdeal(a^2*b^11*c^7*d*e, a^5*b^10*c^2*d^3*e^2, a^6*b^8*c^11*d^2*e^3, a^3*b^5*c^3*d^5*e^4, a^8*b^2*c*d^4*e^7);
+     isExact(prependZeroMap scarfComplex I)
+     isMinimalChainComplex scarfComplex I
+     betti scarfComplex I == betti res I  
+     scarfComplex I == res I
+    Text 
+     See @TO "chain complexes"@ for an overview of chain complexes in Macaulay2.
+   SeeAlso
+    (resolution, Ideal)
+    taylorResolution
+///
+
+TEST///-- Tests for scarfComplex
+
+-- For each one we:
+-- Check that the ranks are correct 
+-- Check that the maps are defined right so we actually have a chain complex
+-- Check that the twists are correct in each hom degree, by checking that the betti keys are a subset of the MFR's betti keys
+R = QQ[a,b,c,d,e];
+I = monomialIdeal(a^2*b^11*c^7,a^5*b^10*c^2*d^2*e,a^5*b^8*c^4*d*e^2,a^2*b^5*c^4*d^5*e^4,a^8*b^2*d^3*e^7);
+SC1 = scarfComplex(I);
+assert(apply(1 + length SC1, i -> rank SC1_i) == {1, 5, 8, 3})
+assert(isChainComplex SC1)
+assert(isSubset(keys betti SC1, keys betti res I))
+
+I2 = monomialIdeal apply( {{6,2,6,6,0}, {2,4,6,8,0}, {2,13,1,3,1}, {3,4,2,10,1}, {3,11,2,1,3}, {1,3,6,5,5}, {9,3,1,0,7}}, i -> R_i);
+SC2 = scarfComplex(I2);
+assert(apply(1 + length SC2, i -> rank SC2_i) == {1, 7, 17, 15, 4})
+assert(isChainComplex SC2)
+assert(isSubset(keys betti SC2, keys betti res I2))
+
+I3 = monomialIdeal apply( {{4,14,2,0,0}, {3,14,0,2,1}, {0,12,0,4,4}, {3,4,7,0,6}, {2,7,1,4,6}, {0,0,4,9,7}}, i -> R_i);
+SC3 = scarfComplex(I3);
+assert(apply(1 + length SC3, i -> rank SC3_i) == {1, 6, 9, 3})
+assert(isChainComplex SC3)
+assert(isSubset(keys betti SC3, keys betti res I3))
+///
+
+TEST///
+-- The next ideal is strongly generic so the Scarf resolution needs to be a minimal free resolution.
+R = QQ[a,b,c,d,e];
+I = monomialIdeal(a^2*b^11*c^7*d*e, a^5*b^10*c^2*d^3*e^2, a^6*b^8*c^11*d^2*e^3, a^3*b^5*c^3*d^5*e^4, a^8*b^2*c*d^4*e^7);
+SC = scarfComplex(I);
+assert(isExact prependZeroMap SC)
+///
+
+TEST/// --using a multigraded ring
+R = QQ[a,b,c,d,e, Degrees => entries id_(ZZ^5)];
+I = monomialIdeal(a^2*b^11*c^7,a^5*b^10*c^2*d^2*e,a^5*b^8*c^4*d*e^2,a^2*b^5*c^4*d^5*e^4,a^8*b^2*d^3*e^7);
+SC1 = scarfComplex(I);
+assert(apply(1 + length SC1, i -> rank SC1_i) == {1, 5, 8, 3})
+assert(isChainComplex SC1)
+assert(isSubset(keys betti SC1, keys betti res I))
+
+I2 = monomialIdeal apply( {{6,2,6,6,0}, {2,4,6,8,0}, {2,13,1,3,1}, {3,4,2,10,1}, {3,11,2,1,3}, {1,3,6,5,5}, {9,3,1,0,7}}, i -> R_i);
+SC2 = scarfComplex(I2);
+assert(apply(1 + length SC2, i -> rank SC2_i) == {1, 7, 17, 15, 4})
+assert(isChainComplex SC2)
+assert(isSubset(keys betti SC2, keys betti res I2))
+
+I3 = monomialIdeal apply( {{4,14,2,0,0}, {3,14,0,2,1}, {0,12,0,4,4}, {3,4,7,0,6}, {2,7,1,4,6}, {0,0,4,9,7}}, i -> R_i);
+SC3 = scarfComplex(I3);
+assert(apply(1 + length SC3, i -> rank SC3_i) == {1, 6, 9, 3})
+assert(isChainComplex SC3)
+assert(isSubset(keys betti SC3, keys betti res I3))
+
+I = monomialIdeal(a^2*b^11*c^7*d*e, a^5*b^10*c^2*d^3*e^2, a^6*b^8*c^11*d^2*e^3, a^3*b^5*c^3*d^5*e^4, a^8*b^2*c*d^4*e^7);
+mSC = scarfComplex(I);
+assert(betti mSC == betti res I)
+assert(isExact prependZeroMap mSC)
+///
+
+TEST///-- Make sure scarfComplex handles zero ideal the same way res does
+R = QQ[x,y,z];
+K = monomialIdeal (0_R);
+assert (scarfComplex K == res K) 
+///
+
+TEST///-- Make sure scarfComplex handles improper ideal the same way res does
+R = QQ[x,y,z,w];
+L = monomialIdeal (1_R);
+assert (scarfComplex L == res L)
+///
+
+
+TEST///
+C = QQ^10[-1]
+C' = appendZeroMap C
+C'' = prependZeroMap C'
+assert(C''_0 == 0 and C''_1 == QQ^10 and C''_2 == 0)
+///
 
 TEST///
 kk= ZZ/101
@@ -1432,7 +1738,7 @@ assert (C == target n)
 assert (isQuasiIsomorphism n)
 ///
 
-{*
+-*
 TEST ///
 S=ZZ[x,y]/ideal(x*y)
 C=(chainComplex(matrix{{x}},matrix{{y^2}},matrix{{x^2}}))[3]
@@ -1441,7 +1747,7 @@ L=chainComplexData C
 C'=chainComplexFromData L
 assert(C'== C)
 ///
-*}
+*-
 
 TEST///
 S = ZZ/32003[a,b]
@@ -1526,7 +1832,7 @@ j = ideal"ab4,a2b3,abc2"
 T = taylorResolution i
 Tr = res i
 Tr.dd_2 
-T' = chainComplex({map(S^1/j,S^1,1)}|apply(3, i->T.dd_(i+1)))
+T' = chainComplex({map(S^1/j,S^1,1)}|apply(3, i->(-1)*T.dd_(i+1)))[1]
 assert(isExact T')
 assert(
     taylor(2,i)==map(T_1,T_2,
@@ -1539,19 +1845,27 @@ assert(true ==
 	T,T,apply(toList(min T..max T), i->id_(T_i))))
 assert(T == trivialHomologicalTruncation (T,0,3))
 assert (T != trivialHomologicalTruncation (T,1,4))
-assert (T == trivialHomologicalTruncation (T'[1], 0, 3))
+
+assert (T == trivialHomologicalTruncation (T', 0, 3))
+
 T'' = prependZeroMap (T[-1])
 assert (1 ==nonzeroMin T'')
 
 --NOTE: the following should return "true" but instead creates
 --an error
---chainComplexMap(T'[1],T, apply(toList(min T..max T), i->id_(T_i)))
---isChainComplexMap oo
+--Actually if a "chainComplexMap is one for which the cone is a complex, this is NOT an error.
+--phi = chainComplexMap(T',T, apply(toList(min T..max T), i->id_(T_i)))
+--phi1 = chainComplexMap(T'[1],T[1], apply(toList(min (T[1])..max (T[1])), i->id_((T[1])_i)))
+--(cone phi).dd
 
---chainComplexMap(T'[1],prependZeroMap T, apply(toList(min T..max T), i->id_(T_i)))
---isChainComplexMap oo
---prependZeroMap T
---isChainComplexMap 
+phi = chainComplexMap(T', prependZeroMap T, apply(toList(min T..max T), i->id_(T_i)), InitialDegree => 0)
+assert(isChainComplexMap phi)
+
+S = ZZ/101[t]
+T = chainComplex(map(S^1,S^1,t))
+T' = chainComplex{map(S^1/(ideal t),S^1, 1), map(S^1,S^1, -t)}[1]
+phi = chainComplexMap(T',T,apply(toList(min T..max T), i->id_(T_i)))
+assert(isChainComplexMap phi == true)
 ///
 
 TEST///
@@ -1566,14 +1880,13 @@ assert(max C2 == 4)
 assert(max C3 == 2)
 assert(max appendZeroMap C3 == 3)
 ///
+
 end--
+
 restart
 uninstallPackage "ChainComplexExtras"
 installPackage "ChainComplexExtras"
 check "ChainComplexExtras"
-
-
-
 viewHelp ChainComplexExtras
 
 

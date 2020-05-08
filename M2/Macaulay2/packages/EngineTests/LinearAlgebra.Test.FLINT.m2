@@ -5,8 +5,8 @@
 --------------------------------
 
 export {
-    ZZpFlint,
-    testLinearAlgebra$FLINT
+    "ZZpFlint",
+    "testLinearAlgebra$FLINT"
 }
 
 ZZpFlint = (char) ->
@@ -62,7 +62,7 @@ TEST ///
   id2 = mutableMatrix matrix(R, {{1,0},{0,1}})
   inverse m
   solve(m, id2)
-  solveLinear(m, id2)
+  -- solveLinear(m, id2)
 ///
 TEST ///
   R = ZZpFlint( 5 )

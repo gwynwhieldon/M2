@@ -12,7 +12,10 @@
 #include "types.h"
 #include "debug.h"
 
-#ifdef HAVE_ALLOCA_H
+/* to get IM2_initialize() : */
+#include "engine.h"
+
+#if HAVE_ALLOCA_H
 #include <alloca.h>
 #else
 #ifdef __GNUC__
@@ -348,7 +351,7 @@ static void interrupt_handler(int sig) {
 			      exit(12);
 			      }
 			 if (buf[0]=='y' || buf[0]=='Y') {
-			      #                   ifdef DEBUG
+			      #                   ifndef NDEBUG
 			      trap();
 			      #                   endif
 			      #                   ifdef ABORT
@@ -397,10 +400,6 @@ static void interrupt_handler(int sig) {
 			 _Exit(interruptExit);
 			 }
 		    interrupts_setInterruptFlag();
-		    # if 0
-		    /* readline doesn't cancel the partially typed line, for some reason, and this doesn't help: */
-		    if (reading_from_readline) rl_free_line_state();
-		    #endif
 		    if (interrupt_jump_set) 
 			 #ifdef HAVE_SIGLONGJMP
 			 siglongjmp(interrupt_jump,1);
@@ -507,27 +506,26 @@ int register_fun(int *count, char *filename, int lineno, char *funname) {
 #if defined HAVE___ENVIRON
     #define our_environ __environ
     #if !HAVE_DECL___ENVIRON
-    extern char **__environ;
+    extern const char **__environ;
     #endif
 #elif defined HAVE__ENVIRON
     #define our_environ _environ
     #if !HAVE_DECL__ENVIRON
-    extern char **_environ;
+    extern const char **_environ;
     #endif
 #elif defined HAVE_ENVIRON
     #define our_environ environ
     #if !HAVE_DECL_ENVIRON
-    extern char **environ;
+    extern const char **environ;
     #endif
 #else
     #error "no environment variable available"
 #endif
 
 extern void clean_up();
-extern void init_readline_variables();
 extern char *GC_stackbottom;
 extern void arginits(int, const char **);
-extern bool gotArg(const char *arg, const char ** argv);
+extern bool gotArg(const char *arg, char ** argv);
 
 #ifdef HAVE_DLFCN_H
 #include <dlfcn.h>
@@ -550,7 +548,7 @@ static void call_shared_library() {
 }
 
 #ifdef HAVE_PYTHON
-#include <python2.5/Python.h>
+#include <python2.7/Python.h>
 #endif
 
 void* testFunc(void* q )
@@ -580,7 +578,6 @@ void* interpFunc(void* vargs2)
   int volatile envc = args->envc;
      setInterpThread();
      reverse_run(thread_prepare_list);// -- re-initialize any thread local variables
-     init_readline_variables();
      arginits(argc,(const char **)saveargv);
 
      //     void M2__prepare();
@@ -637,6 +634,10 @@ char **argv;
      char **x = our_environ; 
      while (*x) envc++, x++;
 
+     GC_INIT();
+     progname = argv[0];
+     IM2_initialize();
+
      system_cpuTime_init();
      call_shared_library();
 
@@ -646,7 +647,7 @@ char **argv;
 #endif
 
 #if defined HAVE_PERSONALITY && !PROFILING
-     if (!gotArg("--no-personality", (const char **)argv)) {
+     if (!gotArg("--no-personality", argv)) {
 	  /* this avoids mmap() calls resulting in address randomization */
 	  int oldpersonality = personality(-1);
 	  if ((oldpersonality & ADDR_NO_RANDOMIZE) == 0) {
@@ -756,11 +757,9 @@ char **argv;
      }
 
      signal(SIGPIPE,SIG_IGN);
-     have_arg_no_int = have_arg(argv,"--int");
-     if (have_arg_no_int)
-	  rl_catch_signals = FALSE; /* tell readline not to catch signals, such as SIGINT */
 
-     system_handleInterruptsSetup(TRUE);
+     /* the configure script is responsible for ensuring that rl_catch_signals is defined, or else we build readline ourselves */
+     rl_catch_signals = FALSE; /* tell readline not to catch signals, such as SIGINT */
      
      vargs = GC_MALLOC_UNCOLLECTABLE(sizeof(struct saveargs));
      vargs->argv=saveargv;
@@ -768,11 +767,15 @@ char **argv;
      vargs->envp=saveenvp;
      vargs->envc = envc;
 
-
-     initializeThreadSupervisor();
-     struct ThreadTask* interpTask = createThreadTask("Interp",interpFunc,vargs,0,0,0);
-     pushTask(interpTask);
-     waitOnTask(interpTask);
+     if (gotArg("--no-threads", saveargv)) {
+	  interpFunc(vargs);
+	  }
+     else {
+	  initializeThreadSupervisor();
+	  struct ThreadTask* interpTask = createThreadTask("Interp",interpFunc,vargs,0,0,0);
+	  pushTask(interpTask);
+	  waitOnTask(interpTask);
+	  }
      return 0;
      }
 

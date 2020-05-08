@@ -73,6 +73,9 @@ M2_string (*gmp_tostringRRpointer)(__mpfr_struct *);
 char newline[] = "\n";
 
 int M2_gbTrace = 0;
+int M2_numericalAlgebraicGeometryTrace = 0;
+
+struct FUNCTION_CELL *thread_prepare_list;
 
 /*
  Local Variables:

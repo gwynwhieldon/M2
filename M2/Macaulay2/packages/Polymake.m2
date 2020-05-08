@@ -5,16 +5,16 @@ newPackage(
     	Authors => {{Name => "Josephine Yu", 
 		  Email => "jyu@math.mit.edu", 
 		  HomePage => "http://www.math.mit.edu/~jyu/"}},
-    	Headline => "a package for interfacing with polymake",
+    	Headline => "interfacing with polymake",
     	DebuggingMode => false
     	)
 
-export {PolymakeObject, polymakeObject,
-     removeComments,
-     getPropertyNames,
-     getProperty, getMatrixProperty, getListProperty,
-     getVectorProperty, makevec, makemat, 
-     toPolymakeFormat, runPolymake, NewtonPolytope}
+export {"PolymakeObject", "polymakeObject",
+     "removeComments",
+     "getPropertyNames",
+     "getProperty", "getMatrixProperty", "getListProperty",
+     "getVectorProperty", "makevec", "makemat", 
+     "toPolymakeFormat", "runPolymake", "NewtonPolytope"}
 
 PolymakeObject = new Type of MutableHashTable
 

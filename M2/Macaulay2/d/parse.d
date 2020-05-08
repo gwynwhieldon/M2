@@ -28,7 +28,6 @@ use varnets;
 use strings1;
 use stdio0;
 use stdiop0;
-use atomic;
 use pthread0;
 
 
@@ -390,8 +389,15 @@ export Expr := (
      RawMonomialIdealCell or
      RawMonomialOrderingCell or
      RawMutableMatrixCell or
+     RawMutableComplexCell or
+     -- NAG begin
+     RawHomotopyCell or
+     RawSLEvaluatorCell or
+     RawSLProgramCell or
      RawStraightLineProgramCell or
      RawPathTrackerCell or
+     RawPointArrayCell or
+     -- NAG end
      RawRingCell or
      RawRingElementCell or
      RawRingMapCell or

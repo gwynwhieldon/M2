@@ -9,25 +9,25 @@ newPackage(
 		HomePage => "http://www.math.uni-bielefeld.de/~bcalmes/"},
                 {Name => "Viktor Petrov"}
 		},
-	Headline => "Create graphics",
+	Headline => "create graphics",
 	DebuggingMode => false)
 
 -- Put here the name of functions that should be visible to users
 export{
-Point2D, Point3D, Segment2D, Segment3D, Polygon2D, Polygon3D, Circle, Sphere, TextTag, GraphicPrimitive, 
-FormattedGraphicPrimitives, Picture,
-point, segment, polygon, circle, sphere, textTag, formatGraphicPrimitives, picture,
-pictureZone, 
-mergeFormattedGraphicPrimitives,
-svgObject, svgPicture, defaultSVGOpening,
-pgfObject, pgfPicture,
-viewPicture
+"Point2D", "Point3D", "Segment2D", "Segment3D", "Polygon2D", "Polygon3D", "Circle", "Sphere", "TextTag", "GraphicPrimitive", 
+"FormattedGraphicPrimitives", "Picture",
+"point", "segment", "polygon", "circle", "sphere", "textTag", "formatGraphicPrimitives", "picture",
+"pictureZone", 
+"mergeFormattedGraphicPrimitives",
+"svgObject", "svgPicture", "defaultSVGOpening",
+"pgfObject", "pgfPicture",
+"viewPicture"
 }
 
 -- Variables that can be modified by the user
 exportMutable{
-possibleSVGOptions, defaultSVGOptions, defaultSVGValues, defaultSVGHeading, defaultSVGClosing,
-possiblePGFOptions, defaultPGFOptions, defaultPGFValues
+"possibleSVGOptions", "defaultSVGOptions", "defaultSVGValues", "defaultSVGHeading", "defaultSVGClosing",
+"possiblePGFOptions", "defaultPGFOptions", "defaultPGFValues"
 }
 
 -- Package code 

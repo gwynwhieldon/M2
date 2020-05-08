@@ -5,8 +5,9 @@ newPackage("Markov",
 	  {Name => "Mike Stillman"}
 	  },
      DebuggingMode => false,
-     Headline => "Markov ideals, arising from Bayesian networks in statistics",
-     Version => "1.2"
+     Headline => "Markov ideals arising from Bayesian networks in statistics",
+     Version => "1.2",
+     PackageImports => {"Elimination"}
      )
 
 ------------------------------------------
@@ -34,10 +35,10 @@ newPackage("Markov",
 
 
 
-export {makeGraph, displayGraph, localMarkovStmts, globalMarkovStmts, pairMarkovStmts,
-       markovRing, marginMap, hideMap, markovMatrices, markovIdeal, writeDotFile, removeRedundants, 
-       gaussRing, gaussMinors, gaussIdeal, gaussTrekIdeal, Graph}
-exportMutable {dotBinary,jpgViewer}
+export {"makeGraph", "displayGraph", "localMarkovStmts", "globalMarkovStmts", "pairMarkovStmts",
+       "markovRing", "marginMap", "hideMap", "markovMatrices", "markovIdeal", "writeDotFile", "removeRedundants", 
+       "gaussRing", "gaussMinors", "gaussIdeal", "gaussTrekIdeal", "Graph"}
+exportMutable {"dotBinary","jpgViewer"}
 
 -------------------------
 -- Graph visualization --
